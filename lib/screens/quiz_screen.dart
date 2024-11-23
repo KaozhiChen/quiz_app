@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:html_unescape/html_unescape.dart';
 
 class QuizScreen extends StatefulWidget {
   final List<dynamic> questions;
@@ -18,6 +19,7 @@ class _QuizScreenState extends State<QuizScreen> {
   late Timer timer;
   int timeLeft = 20;
   List<String> shuffledAnswers = [];
+  String questionText = '';
 
   @override
   void initState() {
@@ -33,7 +35,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void startTimer() {
-    timeLeft = 15;
+    timeLeft = 20;
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (timeLeft > 0) {
@@ -48,10 +50,13 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void loadQuestion() {
     final question = widget.questions[currentQuestionIndex];
+    final unescape = HtmlUnescape();
+
+    questionText = unescape.convert(question['question']);
     final answers = [
       ...question['incorrect_answers'],
       question['correct_answer'],
-    ].map((answer) => answer.toString()).toList();
+    ].map((answer) => unescape.convert(answer)).toList();
 
     // shuffle answers
     answers.shuffle();
@@ -123,8 +128,6 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final question = widget.questions[currentQuestionIndex];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quiz'),
@@ -159,7 +162,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
             // questions
             Text(
-              question['question'],
+              questionText,
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 20),
