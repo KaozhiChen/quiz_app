@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/category.dart';
-import '../services/api_service.dart';
+import '../../models/category.dart';
+import '../../services/api_service.dart';
+import 'quiz_screen.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
@@ -20,6 +21,38 @@ class _SetupScreenState extends State<SetupScreen> {
   void initState() {
     super.initState();
     futureCategories = ApiService.fetchCategories();
+  }
+
+  // fetch questions and navigate to quiz screen
+  void _startQuiz() async {
+    if (selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a category')),
+      );
+      return;
+    }
+
+    try {
+      // get questions
+      final questions = await ApiService.fetchQuestions(
+        amount: selectedNumQuestions,
+        category: selectedCategory!.id,
+        difficulty: selectedDifficulty,
+        type: selectedType,
+      );
+
+      // navigate to quiz screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => QuizScreen(questions: questions),
+        ),
+      );
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $error')),
+      );
+    }
   }
 
   @override
@@ -132,15 +165,7 @@ class _SetupScreenState extends State<SetupScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: () {
-                    if (selectedCategory == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Please select a category')),
-                      );
-                      return;
-                    }
-                  },
+                  onPressed: _startQuiz,
                   child: const Text('Start Quiz'),
                 ),
               ],
