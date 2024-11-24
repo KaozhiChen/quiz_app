@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:html_unescape/html_unescape.dart';
 
+import '../database_helper.dart';
+
 class QuizScreen extends StatefulWidget {
   final List<dynamic> questions;
 
@@ -105,20 +107,80 @@ class _QuizScreenState extends State<QuizScreen> {
     });
   }
 
-  void _showResultDialog() {
+  void _showLeaderboard() async {
+    final leaderboard =
+        await DatabaseHelper().getLeaderboard('Category'); // 替换为实际分类
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Quiz Completed!'),
-          content: Text('You scored $score out of ${widget.questions.length}'),
+          title: const Text('Leaderboard'),
+          content: leaderboard.isEmpty
+              ? const Text('No scores yet.')
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: leaderboard.map((entry) {
+                    return ListTile(
+                      title: Text(entry['username']),
+                      trailing: Text(entry['score'].toString()),
+                    );
+                  }).toList(),
+                ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
+                Navigator.pop(context); // Close leaderboard
+                Navigator.pop(context); // Go back to previous screen
               },
               child: const Text('Back to Setup'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showResultDialog() async {
+    TextEditingController usernameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Quiz Completed!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('You scored $score out of ${widget.questions.length}'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Enter your name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                String username = usernameController.text.trim();
+                if (username.isNotEmpty) {
+                  // Save to leaderboard
+                  await DatabaseHelper().insertScore(
+                    username,
+                    'Category', // 替换为实际分类
+                    score,
+                  );
+
+                  Navigator.pop(context); // Close dialog
+                  _showLeaderboard(); // Show leaderboard
+                }
+              },
+              child: const Text('Submit'),
             ),
           ],
         );
