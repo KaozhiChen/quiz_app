@@ -6,8 +6,13 @@ import '../database_helper.dart';
 
 class QuizScreen extends StatefulWidget {
   final List<dynamic> questions;
+  final String category;
 
-  const QuizScreen({super.key, required this.questions});
+  const QuizScreen({
+    super.key,
+    required this.questions,
+    required this.category,
+  });
 
   @override
   _QuizScreenState createState() => _QuizScreenState();
@@ -22,6 +27,7 @@ class _QuizScreenState extends State<QuizScreen> {
   int timeLeft = 20;
   List<String> shuffledAnswers = [];
   String questionText = '';
+  double progress = 1.0;
 
   @override
   void initState() {
@@ -38,10 +44,12 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void startTimer() {
     timeLeft = 20;
+    progress = 1.0;
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (timeLeft > 0) {
           timeLeft--;
+          progress = timeLeft / 20;
         } else {
           timer.cancel();
           _submitAnswer(null);
@@ -108,14 +116,13 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _showLeaderboard() async {
-    final leaderboard =
-        await DatabaseHelper().getLeaderboard('Category'); // 替换为实际分类
+    final leaderboard = await DatabaseHelper().getLeaderboard(widget.category);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Leaderboard'),
+          title: Text('${widget.category} Leaderboard'),
           content: leaderboard.isEmpty
               ? const Text('No scores yet.')
               : Column(
@@ -130,8 +137,8 @@ class _QuizScreenState extends State<QuizScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close leaderboard
-                Navigator.pop(context); // Go back to previous screen
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
               child: const Text('Back to Setup'),
             ),
@@ -146,7 +153,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: false, // Prevent dismissal without input
       builder: (context) {
         return AlertDialog(
           title: const Text('Quiz Completed!'),
@@ -165,6 +172,14 @@ class _QuizScreenState extends State<QuizScreen> {
             ],
           ),
           actions: [
+            // Allow returning without saving score
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              child: const Text('Skip'),
+            ),
             TextButton(
               onPressed: () async {
                 String username = usernameController.text.trim();
@@ -172,12 +187,16 @@ class _QuizScreenState extends State<QuizScreen> {
                   // Save to leaderboard
                   await DatabaseHelper().insertScore(
                     username,
-                    'Category', // 替换为实际分类
+                    widget.category,
                     score,
                   );
 
-                  Navigator.pop(context); // Close dialog
-                  _showLeaderboard(); // Show leaderboard
+                  Navigator.pop(context);
+                  _showLeaderboard();
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Name cannot be empty')),
+                  );
                 }
               },
               child: const Text('Submit'),
@@ -214,9 +233,30 @@ class _QuizScreenState extends State<QuizScreen> {
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  'Time Left: $timeLeft s',
-                  style: const TextStyle(fontSize: 16, color: Colors.blue),
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        value: progress,
+                        strokeWidth: 6,
+                        backgroundColor: Colors.grey.shade300,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          progress > 0.5
+                              ? Colors.green
+                              : (progress > 0.2 ? Colors.orange : Colors.red),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(
+                      width: 8,
+                    ),
+                    Text(
+                      'Time Left: $timeLeft s',
+                      style: const TextStyle(fontSize: 16, color: Colors.blue),
+                    ),
+                  ],
                 ),
               ],
             ),

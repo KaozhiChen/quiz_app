@@ -50,7 +50,7 @@ class DatabaseHelper {
       where: 'category = ?',
       whereArgs: [category],
       orderBy: 'score DESC',
-      limit: 10,
+      limit: 5,
     );
   }
 }

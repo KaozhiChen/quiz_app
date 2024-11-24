@@ -45,7 +45,10 @@ class _SetupScreenState extends State<SetupScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => QuizScreen(questions: questions),
+          builder: (context) => QuizScreen(
+            questions: questions,
+            category: selectedCategory!.name,
+          ),
         ),
       );
     } catch (error) {
